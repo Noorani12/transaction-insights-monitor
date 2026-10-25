@@ -1,0 +1,308 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transaction Insights</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+</head>
+<body>
+    
+<header class="topbar">
+    <div class="brand">
+        
+<div class="brand-icon">
+    <svg xmlns="http://www.w3.org/2000/svg"
+         width="26" height="26"
+         viewBox="0 0 24 24"
+         fill="none"
+         stroke="currentColor"
+         stroke-width="2"
+         stroke-linecap="round"
+         stroke-linejoin="round"
+         aria-hidden="true">
+        <path d="M3 12h4l3-8 4 16 3-8h4"/>
+    </svg>
+</div>
+
+
+        <div class="brand-text">
+            <p class="eyebrow">PAYMENT OPERATIONS</p>
+            <h1>Transaction Insights</h1>
+        </div>
+    </div>
+
+    <span class="demo-label">
+        <span class="status-dot"></span>
+        DEVELOPMENT
+    </span>
+</header>
+
+
+    <main class="container">
+        <section class="intro">
+            <div>
+                <h2>Overview</h2>
+                <p>Monitor simulated payments and review rule-based alerts.</p>
+            </div>
+        </section>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, message in messages %}
+                <div class="message {{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endwith %}
+
+        <section class="stats">
+            <article class="stat-card">
+                <p>Total transactions</p>
+                <h2>{{ stats["total_count"] }}</h2>
+            </article>
+            <article class="stat-card">
+                <p>Total transaction value</p>
+                <h2>₹{{ "%.2f"|format(stats["total_amount"]) }}</h2>
+            </article>
+            <article class="stat-card">
+                <p>Successful transactions</p>
+                <h2>{{ stats["successful_count"] }}</h2>
+            </article>
+            <article class="stat-card alert-card">
+                <p>Rule-based flags</p>
+                <h2>{{ flagged_count }}</h2>
+            </article>
+    
+        </section>
+        
+<section class="analytics-grid">
+    <article class="panel chart-panel">
+        <h2>Transaction Status</h2>
+        <p>Distribution of recorded transactions</p>
+        <div class="chart-container">
+            <canvas id="statusChart"></canvas>
+        </div>
+    </article>
+
+    <article class="panel chart-panel">
+        <h2>Transaction Value</h2>
+        <p>Daily transaction value for the last 7 recorded dates</p>
+        <div class="chart-container">
+            <canvas id="dailyChart"></canvas>
+        </div>
+    </article>
+</section>
+
+        <script id="chart-data" type="application/json">
+        {{ {
+            "statusLabels": status_labels,
+            "statusValues": status_values,
+            "dailyLabels": daily_labels,
+            "dailyValues": daily_values
+        } | tojson }}
+        </script>
+
+
+        <section class="panel">
+            <div class="section-heading">
+                <div>
+                    <h2>Add transaction</h2>
+                    <p>Enter a simulated payment record.</p>
+                </div>
+            </div>
+
+            <form action="{{ url_for('add_transaction') }}" method="POST"
+                  class="transaction-form">
+                <label>
+                    Merchant
+                    <input type="text" name="merchant" maxlength="100"
+                           placeholder="e.g. Grocery Market" required>
+                </label>
+
+                <label>
+                    Amount (₹)
+                    <input type="number" name="amount" min="0.01"
+                           max="1000000000" step="0.01" required>
+                </label>
+
+                <label>
+                    Status
+                    <select name="status" required>
+                        <option value="Success">Success</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Failed">Failed</option>
+                    </select>
+                </label>
+
+                <button type="submit">Add transaction</button>
+            </form>
+        </section>
+
+        
+<section class="panel" id="transactions">
+    <div class="section-heading transaction-heading">
+        <div>
+            <h2>Recent transactions</h2>
+            <p>Search records or filter by status.</p>
+        </div>
+
+        <a class="export-button"
+           href="{{ url_for('export_transactions',
+               search=search,
+               status=selected_status,
+               risk=selected_risk,
+               from_date=from_date,
+               to_date=to_date) }}">
+            Export CSV ↓
+        </a>
+    </div>
+
+            
+    <form method="GET" action="{{ url_for('index') }}#transactions"
+      class="filter-form">
+
+    <div class="filters">
+        <input id="searchInput" type="search" name="search"
+               placeholder="Search merchant..."
+               value="{{ search }}">
+
+        <select id="statusFilter" name="status">
+            <option value="">All statuses</option>
+            <option value="Success" {% if selected_status == 'Success' %}selected{% endif %}>Success</option>
+            <option value="Pending" {% if selected_status == 'Pending' %}selected{% endif %}>Pending</option>
+            <option value="Failed" {% if selected_status == 'Failed' %}selected{% endif %}>Failed</option>
+        </select>
+
+        <select id="riskFilter" name="risk">
+            <option value="">All risk levels</option>
+            <option value="flagged" {% if selected_risk == 'flagged' %}selected{% endif %}>Flagged</option>
+            <option value="normal" {% if selected_risk == 'normal' %}selected{% endif %}>Not flagged</option>
+        </select>
+    </div>
+
+    <div class="date-filter-form">
+        <label>
+            From date
+            <input type="date" name="from_date" value="{{ from_date }}">
+        </label>
+
+        <label>
+            To date
+            <input type="date" name="to_date" value="{{ to_date }}">
+        </label>
+
+        <button type="submit">Apply filters</button>
+
+        {% if search or selected_status or selected_risk or from_date or to_date %}
+            <a href="{{ url_for('index') }}#transactions">Clear filters</a>
+        {% endif %}
+    </div>
+    </form>
+
+            <div class="table-wrapper">
+                <table id="transactionTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Merchant</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Risk rule</th>
+                            <th>Date</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for t in transactions %}
+                        <tr data-status="{{ t['status'] }}"
+                            data-risk="{{ 'flagged' if t['amount'] >= threshold else 'normal' }}">
+                            <td>#{{ t["id"] }}</td>
+                            <td>{{ t["merchant"] }}</td>
+                            <td>₹{{ "%.2f"|format(t["amount"]) }}</td>
+                            <td>
+                                <span class="status {{ t['status']|lower }}">
+                                    {{ t["status"] }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if t["amount"] >= threshold %}
+                                    <span class="risk flagged">Review amount</span>
+                                {% else %}
+                                    <span class="risk normal">No flag</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ t["created_at"] }}</td>
+                            
+                            <td>  
+                                <a class="edit-button"
+                                href="{{ url_for('edit_transaction', transaction_id=t['id']) }}">
+                                Edit
+                                </a>
+                                <form action="{{ url_for('delete_transaction', transaction_id=t['id']) }}"
+                                method="POST"
+                                onsubmit="return confirm('Delete this transaction?');">
+                                    <button type="submit" class="delete-button">Delete</button>
+                                </form>
+                                </td>
+
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7">No transactions found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <p id="emptyMessage" class="empty-message" hidden>
+                No transactions match these filters.
+            </p>
+            
+            {% if total_transactions > 0 %}
+            <div class="pagination">
+                <span class="pagination-info">
+                    Showing {{ (page - 1) * 10 + 1 }}–{{ (page - 1) * 10 + transactions|length }}
+                    of {{ total_transactions }} transactions
+                </span>
+
+                <div class="pagination-controls">
+                    {% if page > 1 %}
+                    <a href="{{ url_for('index',
+                        page=page - 1,
+                        from_date=from_date,
+                        to_date=to_date,
+                        search=search,
+                        status=selected_status,
+                        risk=selected_risk) }}#transactions">
+                        ← Previous
+                    </a>
+                    {% endif %}
+
+                    <span>Page {{ page }} of {{ total_pages }}</span>
+
+                    {% if page < total_pages %}
+                    <a href="{{ url_for('index',
+                        page=page + 1,
+                        from_date=from_date,
+                        to_date=to_date,
+                        search=search,
+                        status=selected_status,
+                        risk=selected_risk) }}#transactions">
+                        Next →
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+        </section>
+
+        <footer>
+            Demo application using simulated transactions.
+            Rule-based flags are not fraud predictions.
+        </footer>
+    </main>
+</body>
+</html>
