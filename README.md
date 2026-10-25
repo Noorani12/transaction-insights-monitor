@@ -3,6 +3,19 @@
 
 A Flask-based transaction dashboard for monitoring payment activity, reviewing transaction statuses, and identifying potentially high-value transactions using configurable rule-based checks.
 
+## Screenshots
+
+### Dashboard
+![Dashboard](https://github.com/user-attachments/assets/7022c03b-a3df-4c14-9e95-0e2b7e573ea0)
+
+### Transaction Records and Filters
+![Transaction records and filters](https://github.com/user-attachments/assets/a6775b9e-8c2e-4f61-a7b2-0537df95ae42)
+
+### Edit Transaction
+![Edit transaction](https://github.com/user-attachments/assets/64882d99-6075-4944-9c79-c3c7c1145bf3)
+
+## Features
+
 ## Features
 
 - Dashboard with transaction summary metrics
